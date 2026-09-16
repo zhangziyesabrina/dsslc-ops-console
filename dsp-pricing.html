@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DSP Pricing · DSSLC Console</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#0A101E; --panel:#101828; --ink:#E9EEF9; --muted:#8592AD; --teal:#2DD9C6; --hair:rgba(255,255,255,0.07);}
+  *{box-sizing:border-box;}
+  body{background:var(--bg); color:var(--ink); font-family:'Inter',system-ui,sans-serif; margin:0; padding:32px;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  h1{font-family:'Space Grotesk',sans-serif; font-size:22px; margin:0 0 4px;}
+  p.sub{color:var(--muted); margin:0 0 24px; font-size:13px;}
+  a.back{color:var(--teal); text-decoration:none; font-size:13px;}
+  table{border-collapse:collapse; width:100%; max-width:720px; margin-top:20px;}
+  th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); padding:8px 12px; border-bottom:1px solid var(--hair);}
+  td{padding:8px 12px; border-bottom:1px solid var(--hair); font-size:13.5px;}
+  tr:hover td{background:rgba(255,255,255,0.03);}
+</style>
+</head>
+<body>
+<a class="back" href="../index.html">&larr; Back to map</a>
+<h1>DSP pricing — avg price by station</h1>
+<p class="sub">Volume-weighted per-DSP averages within each DSSLC station. Data source: internal station roster.</p>
+<table>
+<tr><th>Station</th><th>DSP</th><th>Daily Volume</th><th>Avg Price</th><th>ZIP Count</th></tr>
+<tr><td>DEN</td><td>WDL</td><td class='mono'>9,641</td><td class='mono'>$1.94</td><td class='mono'>38</td></tr>
+<tr><td>DEN</td><td>PML</td><td class='mono'>8,711</td><td class='mono'>$2.01</td><td class='mono'>46</td></tr>
+<tr><td>DEN</td><td>XAE</td><td class='mono'>7,189</td><td class='mono'>$1.86</td><td class='mono'>34</td></tr>
+<tr><td>DEN</td><td>YON</td><td class='mono'>6,552</td><td class='mono'>$1.89</td><td class='mono'>26</td></tr>
+<tr><td>SLC</td><td>CJJ</td><td class='mono'>5,787</td><td class='mono'>$1.89</td><td class='mono'>21</td></tr>
+<tr><td>SLC</td><td>PML</td><td class='mono'>5,043</td><td class='mono'>$1.98</td><td class='mono'>19</td></tr>
+<tr><td>ABQ</td><td>MEL</td><td class='mono'>4,134</td><td class='mono'>$2.00</td><td class='mono'>14</td></tr>
+<tr><td>ABQ</td><td>RWV</td><td class='mono'>3,909</td><td class='mono'>$2.00</td><td class='mono'>12</td></tr>
+<tr><td>SLC</td><td>CTE</td><td class='mono'>2,739</td><td class='mono'>$1.92</td><td class='mono'>13</td></tr>
+<tr><td>SLC</td><td>XAE</td><td class='mono'>2,091</td><td class='mono'>$1.90</td><td class='mono'>24</td></tr>
+<tr><td>PIH</td><td>CJJ</td><td class='mono'>1,487</td><td class='mono'>$2.10</td><td class='mono'>4</td></tr>
+<tr><td>IDA</td><td>WBI</td><td class='mono'>1,379</td><td class='mono'>$2.10</td><td class='mono'>6</td></tr>
+<tr><td>SAF</td><td>WDL</td><td class='mono'>755</td><td class='mono'>$2.20</td><td class='mono'>6</td></tr>
+<tr><td>DEN</td><td>CBL</td><td class='mono'>414</td><td class='mono'>$1.80</td><td class='mono'>6</td></tr>
+<tr><td>ABQ</td><td>WDL</td><td class='mono'>370</td><td class='mono'>$1.90</td><td class='mono'>2</td></tr>
+<tr><td>DEN</td><td>AAS</td><td class='mono'>306</td><td class='mono'>$1.84</td><td class='mono'>13</td></tr>
+<tr><td>LGU</td><td>CTE</td><td class='mono'>0</td><td class='mono'>$1.96</td><td class='mono'>9</td></tr>
+<tr><td>CYS</td><td>XAE</td><td class='mono'>0</td><td class='mono'>$2.30</td><td class='mono'>3</td></tr>
+<tr><td>BIL</td><td>WBI</td><td class='mono'>0</td><td class='mono'>$2.15</td><td class='mono'>5</td></tr>
+<tr><td>BZN</td><td>WBI</td><td class='mono'>0</td><td class='mono'>$2.15</td><td class='mono'>6</td></tr>
+<tr><td>TWF</td><td>CJJ</td><td class='mono'>0</td><td class='mono'>$2.10</td><td class='mono'>3</td></tr>
+<tr><td>GJT</td><td>PML</td><td class='mono'>0</td><td class='mono'>$2.05</td><td class='mono'>8</td></tr>
+<tr><td>FMN</td><td>RWV</td><td class='mono'>0</td><td class='mono'>$2.25</td><td class='mono'>3</td></tr>
+
+</table>
+</body>
+</html>
