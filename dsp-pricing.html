@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DSP pricing analysis · DSSLC Console</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A101E; --panel:#101828; --panel-alt:#161F33;
+    --panel-hair: rgba(255,255,255,0.08);
+    --ink:#E9EEF9; --muted:#8592AD; --muted-2:#5D6B89;
+    --teal:#2DD9C6; --amber:#F2A93B; --coral:#FF6B6B; --violet:#8B7FF0;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{background:var(--bg); color:var(--ink); font-family:'Inter',system-ui,sans-serif; padding:0 0 60px;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .disp{font-family:'Space Grotesk',sans-serif;}
+  a{color:var(--teal); text-decoration:none;}
+  #topbar{padding:16px 32px; border-bottom:1px solid var(--panel-hair); display:flex; align-items:center; justify-content:space-between;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.08em; color:var(--muted); text-transform:uppercase;}
+  #wrap{max-width:1080px; margin:0 auto; padding:28px 32px;}
+  h1{font-family:'Space Grotesk',sans-serif; font-size:24px; margin:4px 0 6px;}
+  .sub{color:var(--muted); font-size:13px; margin:0 0 22px;}
+  .toolbar{display:flex; align-items:center; gap:12px; margin-bottom:22px; flex-wrap:wrap;}
+  select{background:var(--panel-alt); border:1px solid var(--panel-hair); color:var(--ink); padding:8px 12px; border-radius:8px; font-size:13px; font-family:'IBM Plex Mono',monospace;}
+  .chip{font-size:11px; padding:4px 10px; border-radius:999px; background:var(--panel-alt); color:var(--muted); border:1px solid var(--panel-hair);}
+  .chip.on{color:var(--teal); border-color:rgba(45,217,198,.4);}
+  .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:28px;}
+  .kpi{background:var(--panel); border:1px solid var(--panel-hair); border-radius:10px; padding:16px 18px;}
+  .kpi .l{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted-2); margin-bottom:6px;}
+  .kpi .v{font-family:'Space Grotesk',sans-serif; font-size:21px; font-weight:700;}
+  .kpi .v2{font-size:14px; font-weight:600;}
+  .kpi .sub2{font-size:11px; color:var(--muted); margin-top:4px;}
+  section{margin-bottom:34px;}
+  .section-title{font-family:'Space Grotesk',sans-serif; font-size:16px; font-weight:700; margin:0 0 4px;}
+  .section-desc{font-size:12px; color:var(--muted); margin:0 0 16px; max-width:720px;}
+  #barchart{width:100%; overflow-x:auto;}
+  .bar-row{display:flex; align-items:center; gap:10px; padding:6px 0; cursor:default;}
+  .bar-label{width:52px; font-family:'IBM Plex Mono',monospace; font-size:12px; flex-shrink:0;}
+  .bar-track{flex:1; height:20px; background:var(--panel-alt); border-radius:5px; position:relative; overflow:visible;}
+  .bar-fill{height:100%; border-radius:5px; background:var(--teal); transition:width .2s;}
+  .bar-avgline{position:absolute; top:-3px; bottom:-3px; width:2px; background:repeating-linear-gradient(180deg,var(--amber) 0 4px, transparent 4px 8px);}
+  .bar-val{width:120px; text-align:right; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--muted);}
+  .bar-row:hover .bar-track{outline:1px solid rgba(255,255,255,.2);}
+  table.matrix{border-collapse:collapse; width:100%; font-size:12px;}
+  table.matrix th, table.matrix td{padding:7px 9px; text-align:center; border:1px solid var(--panel-hair); white-space:nowrap;}
+  table.matrix th{background:var(--panel-alt); font-weight:600; font-size:11px; color:var(--muted);}
+  table.matrix td.dsplabel, table.matrix th.dsplabel{text-align:left; font-family:'IBM Plex Mono',monospace; font-weight:600; color:var(--ink); position:sticky; left:0; background:var(--panel);}
+  table.matrix td.cell{font-family:'IBM Plex Mono',monospace; cursor:default;}
+  table.matrix td.cell.empty{color:var(--muted-2); background:transparent !important;}
+  table.matrix tr.overallrow td, table.matrix tr.overallrow th{border-top:2px solid var(--panel-hair); font-weight:700;}
+  .method{font-size:11.5px; color:var(--muted-2); line-height:1.7; border-top:1px solid var(--panel-hair); padding-top:18px; margin-top:30px;}
+  .method b{color:var(--muted);}
+  #ps-note{font-size:11px; color:var(--muted-2); margin-top:6px;}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <div>
+    <div class="eyebrow">GOFO · DSSLC network · last-mile operations</div>
+  </div>
+  <a href="../index.html">&larr; Back to network map</a>
+</div>
+<div id="wrap">
+  <h1>DSP pricing analysis — avg price by station &amp; network</h1>
+  <p class="sub" id="subtitle"></p>
+
+  <div class="toolbar">
+    <span style="font-size:12px;color:var(--muted);">View</span>
+    <select id="viewSelect"></select>
+    <span class="chip" id="psChip">base prices</span>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="l">Avg price (selection)</div><div class="v mono" id="kpi-avg">—</div><div class="sub2">$/pkg, volume-weighted</div></div>
+    <div class="kpi"><div class="l">Highest-priced DSP</div><div class="v2" id="kpi-high">—</div><div class="sub2" id="kpi-high-sub"></div></div>
+    <div class="kpi"><div class="l">Lowest-priced DSP</div><div class="v2" id="kpi-low">—</div><div class="sub2" id="kpi-low-sub"></div></div>
+    <div class="kpi"><div class="l">Price spread</div><div class="v mono" id="kpi-spread">—</div><div class="sub2">max − min across DSPs</div></div>
+  </div>
+
+  <section>
+    <div class="section-title">Avg price per DSP</div>
+    <div class="section-desc">Bars = volume-weighted avg $/pkg for each DSP in the current selection. Dashed line = selection average. Hover a bar for its daily volume.</div>
+    <div id="barchart"></div>
+  </section>
+
+  <section>
+    <div class="section-title">DSP × station price matrix</div>
+    <div class="section-desc">Volume-weighted avg $/pkg per DSP in each station where it operates; darker teal = higher price. Overall combines a DSP's station cells weighted by each station's daily volume share of the DSSLC region (normalized over the stations that DSP serves). Vol = daily pkg volume attributed to the DSP in that station.</div>
+    <div style="overflow-x:auto;">
+      <table class="matrix" id="matrix"></table>
+    </div>
+  </section>
+
+  <div class="method">
+    <b>Method.</b> Chart &amp; KPIs: for each DSP, avg price = Σ(ZIP price × DSP volume in that ZIP) ÷ Σ(DSP volume), over priced ZIPs in the current selection. Where a DSP has zero recorded volume (several DSSLC stations have no daily-volume column in the source data), the plain average of its ZIP prices is used instead so the DSP still appears. Matrix: each cell is the DSP's volume-weighted avg within that station; a DSP's Overall value combines its station cells weighted by each station's daily-volume share of the DSSLC region, normalized over the stations it operates in. The Station avg row is that station's volume-weighted avg over all its priced ZIPs, and the region Overall is Σ(station avg × station volume share).<br><br>
+    <b>Price sheet.</b> This page reads <span class="mono">data/price_adjustments.csv</span> the same way the map does — commit an updated CSV and these figures recompute on next load. The chip next to the selector shows whether adjustments are active.
+    <div id="ps-note"></div>
+  </div>
+</div>
+
+<script id="records" type="application/json">[{"station": "DEN", "dsp": "PML", "zip": "80910", "price": 2.1, "volume": 779}, {"station": "DEN", "dsp": "WDL", "zip": "80221", "price": 1.8, "volume": 747}, {"station": "DEN", "dsp": "WDL", "zip": "80218", "price": 1.975, "volume": 678}, {"station": "DEN", "dsp": "WDL", "zip": "80209", "price": 1.975, "volume": 473}, {"station": "DEN", "dsp": "XAE", "zip": "80209", "price": 1.975, "volume": 190}, {"station": "DEN", "dsp": "YON", "zip": "80530", "price": 1.95, "volume": 659}, {"station": "DEN", "dsp": "XAE", "zip": "80007", "price": 1.9, "volume": 613}, {"station": "DEN", "dsp": "YON", "zip": "80542", "price": 1.95, "volume": 606}, {"station": "DEN", "dsp": "PML", "zip": "80913", "price": 2.1, "volume": 592}, {"station": "DEN", "dsp": "WDL", "zip": "80130", "price": 1.9, "volume": 523}, {"station": "DEN", "dsp": "WDL", "zip": "80216", "price": 1.975, "volume": 0}, {"station": "DEN", "dsp": "YON", "zip": "80216", "price": 1.975, "volume": 519}, {"station": "DEN", "dsp": "WDL", "zip": "80550", "price": 2.05, "volume": 519}, {"station": "DEN", "dsp": "WDL", "zip": "80203", "price": 1.975, "volume": 516}, {"station": "DEN", "dsp": "YON", "zip": "80602", "price": 1.9, "volume": 515}, {"station": "DEN", "dsp": "WDL", "zip": "80521", "price": 2.05, "volume": 514}, {"station": "DEN", "dsp": "WDL", "zip": "80260", "price": 1.9, "volume": 488}, {"station": "DEN", "dsp": "YON", "zip": "80621", "price": 1.95, "volume": 470}, {"station": "DEN", "dsp": "YON", "zip": "80108", "price": 1.85, "volume": 462}, {"station": "DEN", "dsp": "PML", "zip": "80909", "price": 2.1, "volume": 444}, {"station": "DEN", "dsp": "PML", "zip": "80918", "price": 2.0, "volume": 423}, {"station": "DEN", "dsp": "WDL", "zip": "80234", "price": 1.9, "volume": 414}, {"station": "DEN", "dsp": "XAE", "zip": "80123", "price": 1.75, "volume": 413}, {"station": "DEN", "dsp": "PML", "zip": "80210", "price": 1.975, "volume": 90}, {"station": "DEN", "dsp": "WDL", "zip": "80210", "price": 1.975, "volume": 312}, {"station": "DEN", "dsp": "XAE", "zip": "80011", "price": 1.95, "volume": 390}, {"station": "DEN", "dsp": "PML", "zip": "80907", "price": 2.1, "volume": 390}, {"station": "DEN", "dsp": "XAE", "zip": "80005", "price": 1.9, "volume": 380}, {"station": "DEN", "dsp": "YON", "zip": "80640", "price": 1.9, "volume": 374}, {"station": "DEN", "dsp": "PML", "zip": "80230", "price": 1.75, "volume": 373}, {"station": "DEN", "dsp": "PML", "zip": "80906", "price": 2.1, "volume": 370}, {"station": "DEN", "dsp": "XAE", "zip": "80403", "price": 1.9, "volume": 367}, {"station": "DEN", "dsp": "WDL", "zip": "80526", "price": 2.05, "volume": 365}, {"station": "DEN", "dsp": "PML", "zip": "80925", "price": 2.0, "volume": 359}, {"station": "DEN", "dsp": "WDL", "zip": "80233", "price": 1.85, "volume": 357}, {"station": "DEN", "dsp": "XAE", "zip": "80110", "price": 1.75, "volume": 344}, {"station": "DEN", "dsp": "WDL", "zip": "80524", "price": 2.05, "volume": 321}, {"station": "DEN", "dsp": "PML", "zip": "80924", "price": 2.0, "volume": 319}, {"station": "DEN", "dsp": "XAE", "zip": "80014", "price": 1.95, "volume": 318}, {"station": "DEN", "dsp": "PML", "zip": "80922", "price": 2.0, "volume": 318}, {"station": "DEN", "dsp": "XAE", "zip": "80031", "price": 1.9, "volume": 317}, {"station": "DEN", "dsp": "WDL", "zip": "80205", "price": 1.975, "volume": 258}, {"station": "DEN", "dsp": "YON", "zip": "80205", "price": 1.975, "volume": 58}, {"station": "DEN", "dsp": "WDL", "zip": "80204", "price": 1.8, "volume": 312}, {"station": "DEN", "dsp": "XAE", "zip": "80128", "price": 1.75, "volume": 310}, {"station": "DEN", "dsp": "PML", "zip": "80231", "price": 1.75, "volume": 305}, {"station": "DEN", "dsp": "YON", "zip": "80538", "price": 1.95, "volume": 305}, {"station": "DEN", "dsp": "WDL", "zip": "80015", "price": 1.95, "volume": 300}, {"station": "DEN", "dsp": "PML", "zip": "80237", "price": 1.75, "volume": 290}, {"station": "DEN", "dsp": "PML", "zip": "80817", "price": 2.1, "volume": 276}, {"station": "DEN", "dsp": "XAE", "zip": "80021", "price": 1.9, "volume": 274}, {"station": "DEN", "dsp": "YON", "zip": "80220", "price": 1.75, "volume": 273}, {"station": "DEN", "dsp": "XAE", "zip": "80113", "price": 1.75, "volume": 265}, {"station": "DEN", "dsp": "YON", "zip": "80104", "price": 1.85, "volume": 263}, {"station": "DEN", "dsp": "XAE", "zip": "80236", "price": 1.75, "volume": 263}, {"station": "DEN", "dsp": "WDL", "zip": "80229", "price": 1.85, "volume": 260}, {"station": "DEN", "dsp": "WDL", "zip": "80212", "price": 1.8, "volume": 254}, {"station": "DEN", "dsp": "XAE", "zip": "80023", "price": 1.9, "volume": 249}, {"station": "DEN", "dsp": "XAE", "zip": "80024", "price": 1.95, "volume": 246}, {"station": "DEN", "dsp": "XAE", "zip": "80235", "price": 1.75, "volume": 246}, {"station": "DEN", "dsp": "YON", "zip": "80026", "price": 1.95, "volume": 244}, {"station": "DEN", "dsp": "PML", "zip": "80904", "price": 2.1, "volume": 243}, {"station": "DEN", "dsp": "PML", "zip": "80620", "price": 1.95, "volume": 240}, {"station": "DEN", "dsp": "PML", "zip": "80543", "price": 1.95, "volume": 231}, {"station": "DEN", "dsp": "YON", "zip": "80513", "price": 1.95, "volume": 223}, {"station": "DEN", "dsp": "XAE", "zip": "80249", "price": 1.75, "volume": 221}, {"station": "DEN", "dsp": "WDL", "zip": "80129", "price": 1.9, "volume": 220}, {"station": "DEN", "dsp": "PML", "zip": "80631", "price": 1.95, "volume": 215}, {"station": "DEN", "dsp": "WDL", "zip": "80122", "price": 1.9, "volume": 209}, {"station": "DEN", "dsp": "WDL", "zip": "80126", "price": 1.9, "volume": 209}, {"station": "DEN", "dsp": "XAE", "zip": "80003", "price": 1.9, "volume": 208}, {"station": "DEN", "dsp": "PML", "zip": "81001", "price": 2.1, "volume": 204}, {"station": "DEN", "dsp": "YON", "zip": "80207", "price": 1.75, "volume": 200}, {"station": "DEN", "dsp": "YON", "zip": "80514", "price": 1.95, "volume": 200}, {"station": "DEN", "dsp": "YON", "zip": "80504", "price": 1.95, "volume": 198}, {"station": "DEN", "dsp": "XAE", "zip": "80125", "price": 1.75, "volume": 194}, {"station": "DEN", "dsp": "WDL", "zip": "80202", "price": 1.8, "volume": 194}, {"station": "DEN", "dsp": "WDL", "zip": "80528", "price": 2.05, "volume": 192}, {"station": "DEN", "dsp": "PML", "zip": "80927", "price": 2.0, "volume": 183}, {"station": "DEN", "dsp": "XAE", "zip": "80012", "price": 1.9, "volume": 181}, {"station": "DEN", "dsp": "PML", "zip": "80914", "price": 2.1, "volume": 180}, {"station": "DEN", "dsp": "PML", "zip": "80920", "price": 2.0, "volume": 180}, {"station": "DEN", "dsp": "PML", "zip": "81006", "price": 2.1, "volume": 177}, {"station": "DEN", "dsp": "XAE", "zip": "80238", "price": 1.75, "volume": 171}, {"station": "DEN", "dsp": "PML", "zip": "80905", "price": 2.1, "volume": 168}, {"station": "DEN", "dsp": "WDL", "zip": "80211", "price": 1.8, "volume": 162}, {"station": "DEN", "dsp": "PML", "zip": "80831", "price": 2.0, "volume": 161}, {"station": "DEN", "dsp": "YON", "zip": "80516", "price": 1.95, "volume": 160}, {"station": "DEN", "dsp": "YON", "zip": "80246", "price": 1.75, "volume": 159}, {"station": "DEN", "dsp": "PML", "zip": "80938", "price": 2.0, "volume": 159}, {"station": "DEN", "dsp": "WDL", "zip": "80112", "price": 1.95, "volume": 157}, {"station": "DEN", "dsp": "WDL", "zip": "80134", "price": 1.95, "volume": 157}, {"station": "DEN", "dsp": "YON", "zip": "80537", "price": 1.95, "volume": 154}, {"station": "DEN", "dsp": "PML", "zip": "80921", "price": 2.0, "volume": 154}, {"station": "DEN", "dsp": "WDL", "zip": "80018", "price": 1.95, "volume": 149}, {"station": "DEN", "dsp": "XAE", "zip": "80030", "price": 1.9, "volume": 146}, {"station": "DEN", "dsp": "AAS", "zip": "80302", "price": 1.9, "volume": 145}, {"station": "DEN", "dsp": "YON", "zip": "80224", "price": 1.75, "volume": 143}, {"station": "DEN", "dsp": "PML", "zip": "80546", "price": 1.95, "volume": 143}, {"station": "DEN", "dsp": "XAE", "zip": "80419", "price": 1.9, "volume": 139}, {"station": "DEN", "dsp": "XAE", "zip": "80010", "price": 1.95, "volume": 132}, {"station": "DEN", "dsp": "YON", "zip": "80603", "price": 1.9, "volume": 124}, {"station": "DEN", "dsp": "WDL", "zip": "80016", "price": 1.95, "volume": 119}, {"station": "DEN", "dsp": "WDL", "zip": "80525", "price": 2.05, "volume": 109}, {"station": "DEN", "dsp": "PML", "zip": "80919", "price": 2.1, "volume": 109}, {"station": "DEN", "dsp": "XAE", "zip": "80022", "price": 1.75, "volume": 103}, {"station": "DEN", "dsp": "YON", "zip": "80222", "price": 1.75, "volume": 103}, {"station": "DEN", "dsp": "CBL", "zip": "80226", "price": 1.8, "volume": 101}, {"station": "DEN", "dsp": "XAE", "zip": "80239", "price": 1.75, "volume": 101}, {"station": "DEN", "dsp": "PML", "zip": "80634", "price": 1.95, "volume": 99}, {"station": "DEN", "dsp": "PML", "zip": "80939", "price": 2.0, "volume": 92}, {"station": "DEN", "dsp": "WDL", "zip": "80206", "price": 1.975, "volume": 0}, {"station": "DEN", "dsp": "XAE", "zip": "80206", "price": 1.975, "volume": 90}, {"station": "DEN", "dsp": "PML", "zip": "80951", "price": 2.0, "volume": 88}, {"station": "DEN", "dsp": "PML", "zip": "80915", "price": 2.0, "volume": 83}, {"station": "DEN", "dsp": "YON", "zip": "80601", "price": 1.9, "volume": 82}, {"station": "DEN", "dsp": "CBL", "zip": "80227", "price": 1.8, "volume": 81}, {"station": "DEN", "dsp": "PML", "zip": "80911", "price": 2.0, "volume": 81}, {"station": "DEN", "dsp": "CBL", "zip": "80232", "price": 1.8, "volume": 79}, {"station": "DEN", "dsp": "WDL", "zip": "80121", "price": 1.9, "volume": 78}, {"station": "DEN", "dsp": "XAE", "zip": "80127", "price": 1.75, "volume": 78}, {"station": "DEN", "dsp": "WDL", "zip": "80547", "price": 2.05, "volume": 72}, {"station": "DEN", "dsp": "CBL", "zip": "80228", "price": 1.8, "volume": 69}, {"station": "DEN", "dsp": "AAS", "zip": "80303", "price": 1.9, "volume": 67}, {"station": "DEN", "dsp": "PML", "zip": "80908", "price": 2.0, "volume": 67}, {"station": "DEN", "dsp": "PML", "zip": "80923", "price": 2.0, "volume": 63}, {"station": "DEN", "dsp": "XAE", "zip": "80019", "price": 1.95, "volume": 60}, {"station": "DEN", "dsp": "XAE", "zip": "80017", "price": 1.95, "volume": 58}, {"station": "DEN", "dsp": "AAS", "zip": "80214", "price": 1.75, "volume": 53}, {"station": "DEN", "dsp": "XAE", "zip": "80004", "price": 1.9, "volume": 49}, {"station": "DEN", "dsp": "CBL", "zip": "80223", "price": 1.8, "volume": 44}, {"station": "DEN", "dsp": "CBL", "zip": "80219", "price": 1.8, "volume": 40}, {"station": "DEN", "dsp": "XAE", "zip": "80045", "price": 1.95, "volume": 37}, {"station": "DEN", "dsp": "XAE", "zip": "80013", "price": 1.95, "volume": 36}, {"station": "DEN", "dsp": "AAS", "zip": "80002", "price": 1.75, "volume": 34}, {"station": "DEN", "dsp": "YON", "zip": "80534", "price": 1.95, "volume": 33}, {"station": "DEN", "dsp": "PML", "zip": "81005", "price": 2.1, "volume": 29}, {"station": "DEN", "dsp": "YON", "zip": "80520", "price": 1.95, "volume": 25}, {"station": "DEN", "dsp": "PML", "zip": "81004", "price": 2.1, "volume": 16}, {"station": "DEN", "dsp": "PML", "zip": "81008", "price": 2.1, "volume": 11}, {"station": "DEN", "dsp": "AAS", "zip": "80215", "price": 1.75, "volume": 7}, {"station": "DEN", "dsp": "PML", "zip": "80247", "price": 1.75, "volume": 7}, {"station": "DEN", "dsp": "WDL", "zip": "80111", "price": 1.95, "volume": 3}, {"station": "DEN", "dsp": "XAE", "zip": "80020", "price": 1.9, "volume": 0}, {"station": "DEN", "dsp": "AAS", "zip": "80027", "price": 1.9, "volume": 0}, {"station": "DEN", "dsp": "AAS", "zip": "80033", "price": 1.75, "volume": 0}, {"station": "DEN", "dsp": "YON", "zip": "80109", "price": 1.85, "volume": 0}, {"station": "DEN", "dsp": "WDL", "zip": "80120", "price": 1.9, "volume": 0}, {"station": "DEN", "dsp": "WDL", "zip": "80124", "price": 1.9, "volume": 0}, {"station": "DEN", "dsp": "PML", "zip": "80132", "price": 2.0, "volume": 0}, {"station": "DEN", "dsp": "PML", "zip": "80133", "price": 2.0, "volume": 0}, {"station": "DEN", "dsp": "WDL", "zip": "80138", "price": 1.95, "volume": 0}, {"station": "DEN", "dsp": "WDL", "zip": "80241", "price": 1.9, "volume": 0}, {"station": "DEN", "dsp": "AAS", "zip": "80301", "price": 1.9, "volume": 0}, {"station": "DEN", "dsp": "AAS", "zip": "80304", "price": 1.9, "volume": 0}, {"station": "DEN", "dsp": "AAS", "zip": "80305", "price": 1.9, "volume": 0}, {"station": "DEN", "dsp": "AAS", "zip": "80401", "price": 1.75, "volume": 0}, {"station": "DEN", "dsp": "AAS", "zip": "80501", "price": 1.9, "volume": 0}, {"station": "DEN", "dsp": "AAS", "zip": "80503", "price": 1.9, "volume": 0}, {"station": "DEN", "dsp": "PML", "zip": "80903", "price": 2.1, "volume": 0}, {"station": "DEN", "dsp": "PML", "zip": "80916", "price": 2.0, "volume": 0}, {"station": "DEN", "dsp": "PML", "zip": "80917", "price": 2.0, "volume": 0}, {"station": "DEN", "dsp": "PML", "zip": "81003", "price": 2.1, "volume": 0}, {"station": "SLC", "dsp": "PML", "zip": "84043", "price": 1.9, "volume": 723}, {"station": "SLC", "dsp": "CJJ", "zip": "84087", "price": 1.9, "volume": 594}, {"station": "SLC", "dsp": "CJJ", "zip": "84010", "price": 1.9, "volume": 547}, {"station": "SLC", "dsp": "CTE", "zip": "84118", "price": 1.9, "volume": 541}, {"station": "SLC", "dsp": "PML", "zip": "84005", "price": 1.9, "volume": 508}, {"station": "SLC", "dsp": "CJJ", "zip": "84037", "price": 1.9, "volume": 491}, {"station": "SLC", "dsp": "XAE", "zip": "84067", "price": 1.9, "volume": 479}, {"station": "SLC", "dsp": "XAE", "zip": "84408", "price": 1.9, "volume": 479}, {"station": "SLC", "dsp": "PML", "zip": "84003", "price": 1.9, "volume": 449}, {"station": "SLC", "dsp": "CJJ", "zip": "84047", "price": 1.9, "volume": 442}, {"station": "SLC", "dsp": "PML", "zip": "84111", "price": 2.05, "volume": 419}, {"station": "SLC", "dsp": "CJJ", "zip": "84093", "price": 1.9, "volume": 368}, {"station": "SLC", "dsp": "XAE", "zip": "84404", "price": 1.9, "volume": 353}, {"station": "SLC", "dsp": "PML", "zip": "84115", "price": 2.05, "volume": 350}, {"station": "SLC", "dsp": "PML", "zip": "84045", "price": 1.9, "volume": 334}, {"station": "SLC", "dsp": "CJJ", "zip": "84117", "price": 1.9, "volume": 332}, {"station": "SLC", "dsp": "CJJ", "zip": "84121", "price": 1.9, "volume": 330}, {"station": "SLC", "dsp": "CTE", "zip": "84042", "price": 1.95, "volume": 323}, {"station": "SLC", "dsp": "CTE", "zip": "84119", "price": 1.9, "volume": 315}, {"station": "SLC", "dsp": "CJJ", "zip": "84088", "price": 1.9, "volume": 308}, {"station": "SLC", "dsp": "CTE", "zip": "84059", "price": 1.95, "volume": 301}, {"station": "SLC", "dsp": "PML", "zip": "84108", "price": 2.05, "volume": 296}, {"station": "SLC", "dsp": "CJJ", "zip": "84009", "price": 1.8, "volume": 294}, {"station": "SLC", "dsp": "XAE", "zip": "84401", "price": 1.9, "volume": 290}, {"station": "SLC", "dsp": "CTE", "zip": "84058", "price": 1.95, "volume": 287}, {"station": "SLC", "dsp": "CJJ", "zip": "84084", "price": 1.8, "volume": 286}, {"station": "SLC", "dsp": "CJJ", "zip": "84116", "price": 1.9, "volume": 281}, {"station": "SLC", "dsp": "PML", "zip": "84106", "price": 2.05, "volume": 279}, {"station": "SLC", "dsp": "PML", "zip": "84101", "price": 2.05, "volume": 264}, {"station": "SLC", "dsp": "PML", "zip": "84102", "price": 2.05, "volume": 263}, {"station": "SLC", "dsp": "PML", "zip": "84103", "price": 2.05, "volume": 254}, {"station": "SLC", "dsp": "CTE", "zip": "84097", "price": 1.95, "volume": 252}, {"station": "SLC", "dsp": "CJJ", "zip": "84107", "price": 1.9, "volume": 246}, {"station": "SLC", "dsp": "CJJ", "zip": "84054", "price": 1.9, "volume": 238}, {"station": "SLC", "dsp": "PML", "zip": "84105", "price": 2.05, "volume": 215}, {"station": "SLC", "dsp": "CJJ", "zip": "84014", "price": 1.9, "volume": 214}, {"station": "SLC", "dsp": "XAE", "zip": "84414", "price": 1.9, "volume": 214}, {"station": "SLC", "dsp": "CTE", "zip": "84123", "price": 1.9, "volume": 213}, {"station": "SLC", "dsp": "CTE", "zip": "84104", "price": 1.9, "volume": 205}, {"station": "SLC", "dsp": "XAE", "zip": "84074", "price": 1.9, "volume": 196}, {"station": "SLC", "dsp": "PML", "zip": "84062", "price": 1.9, "volume": 178}, {"station": "SLC", "dsp": "CJJ", "zip": "84070", "price": 1.9, "volume": 170}, {"station": "SLC", "dsp": "CJJ", "zip": "84124", "price": 1.9, "volume": 161}, {"station": "SLC", "dsp": "PML", "zip": "84004", "price": 1.9, "volume": 153}, {"station": "SLC", "dsp": "PML", "zip": "84109", "price": 2.05, "volume": 150}, {"station": "SLC", "dsp": "CTE", "zip": "84120", "price": 1.9, "volume": 127}, {"station": "SLC", "dsp": "PML", "zip": "84065", "price": 1.9, "volume": 122}, {"station": "SLC", "dsp": "CJJ", "zip": "84094", "price": 1.9, "volume": 104}, {"station": "SLC", "dsp": "CJJ", "zip": "84081", "price": 1.8, "volume": 103}, {"station": "SLC", "dsp": "CJJ", "zip": "84025", "price": 1.9, "volume": 101}, {"station": "SLC", "dsp": "CJJ", "zip": "84095", "price": 1.9, "volume": 90}, {"station": "SLC", "dsp": "CJJ", "zip": "84092", "price": 1.9, "volume": 87}, {"station": "SLC", "dsp": "PML", "zip": "84096", "price": 1.9, "volume": 79}, {"station": "SLC", "dsp": "CTE", "zip": "84129", "price": 1.9, "volume": 78}, {"station": "SLC", "dsp": "XAE", "zip": "84405", "price": 1.9, "volume": 54}, {"station": "SLC", "dsp": "CTE", "zip": "84057", "price": 1.95, "volume": 53}, {"station": "SLC", "dsp": "CTE", "zip": "84128", "price": 1.9, "volume": 31}, {"station": "SLC", "dsp": "XAE", "zip": "84403", "price": 1.9, "volume": 26}, {"station": "SLC", "dsp": "CTE", "zip": "84044", "price": 1.9, "volume": 13}, {"station": "SLC", "dsp": "PML", "zip": "84112", "price": 2.05, "volume": 7}, {"station": "SLC", "dsp": "XAE", "zip": "84015", "price": 1.9, "volume": 0}, {"station": "SLC", "dsp": "PML", "zip": "84020", "price": 1.9, "volume": 0}, {"station": "SLC", "dsp": "XAE", "zip": "84029", "price": 1.9, "volume": 0}, {"station": "SLC", "dsp": "XAE", "zip": "84040", "price": 1.9, "volume": 0}, {"station": "SLC", "dsp": "XAE", "zip": "84041", "price": 1.9, "volume": 0}, {"station": "SLC", "dsp": "XAE", "zip": "84056", "price": 1.9, "volume": 0}, {"station": "SLC", "dsp": "XAE", "zip": "84075", "price": 1.9, "volume": 0}, {"station": "SLC", "dsp": "XAE", "zip": "84315", "price": 1.9, "volume": 0}, {"station": "SLC", "dsp": "XAE", "zip": "84601", "price": 1.9, "volume": 0}, {"station": "SLC", "dsp": "XAE", "zip": "84602", "price": 1.9, "volume": 0}, {"station": "SLC", "dsp": "XAE", "zip": "84604", "price": 1.9, "volume": 0}, {"station": "SLC", "dsp": "XAE", "zip": "84606", "price": 1.9, "volume": 0}, {"station": "SLC", "dsp": "XAE", "zip": "84651", "price": 1.9, "volume": 0}, {"station": "SLC", "dsp": "XAE", "zip": "84653", "price": 1.9, "volume": 0}, {"station": "SLC", "dsp": "XAE", "zip": "84660", "price": 1.9, "volume": 0}, {"station": "SLC", "dsp": "XAE", "zip": "84663", "price": 1.9, "volume": 0}, {"station": "SLC", "dsp": "XAE", "zip": "84664", "price": 1.9, "volume": 0}, {"station": "ABQ", "dsp": "MEL", "zip": "87022", "price": 2.0, "volume": 730}, {"station": "ABQ", "dsp": "RWV", "zip": "87112", "price": 2.0, "volume": 730}, {"station": "ABQ", "dsp": "RWV", "zip": "87121", "price": 2.0, "volume": 539}, {"station": "ABQ", "dsp": "RWV", "zip": "87048", "price": 2.0, "volume": 533}, {"station": "ABQ", "dsp": "MEL", "zip": "87068", "price": 2.0, "volume": 533}, {"station": "ABQ", "dsp": "MEL", "zip": "87106", "price": 2.0, "volume": 518}, {"station": "ABQ", "dsp": "RWV", "zip": "87120", "price": 2.0, "volume": 413}, {"station": "ABQ", "dsp": "MEL", "zip": "87123", "price": 2.0, "volume": 343}, {"station": "ABQ", "dsp": "MEL", "zip": "87104", "price": 2.0, "volume": 339}, {"station": "ABQ", "dsp": "RWV", "zip": "87109", "price": 2.0, "volume": 339}, {"station": "ABQ", "dsp": "MEL", "zip": "87102", "price": 2.0, "volume": 331}, {"station": "ABQ", "dsp": "RWV", "zip": "87114", "price": 2.0, "volume": 331}, {"station": "ABQ", "dsp": "RWV", "zip": "87107", "price": 2.0, "volume": 314}, {"station": "ABQ", "dsp": "RWV", "zip": "87110", "price": 2.0, "volume": 303}, {"station": "ABQ", "dsp": "MEL", "zip": "87158", "price": 2.0, "volume": 303}, {"station": "ABQ", "dsp": "MEL", "zip": "87031", "price": 2.0, "volume": 271}, {"station": "ABQ", "dsp": "MEL", "zip": "87131", "price": 2.0, "volume": 248}, {"station": "ABQ", "dsp": "WDL", "zip": "87124", "price": 1.9, "volume": 226}, {"station": "ABQ", "dsp": "MEL", "zip": "87105", "price": 2.0, "volume": 203}, {"station": "ABQ", "dsp": "RWV", "zip": "87111", "price": 2.0, "volume": 203}, {"station": "ABQ", "dsp": "WDL", "zip": "87144", "price": 1.9, "volume": 144}, {"station": "ABQ", "dsp": "MEL", "zip": "87002", "price": 2.0, "volume": 124}, {"station": "ABQ", "dsp": "RWV", "zip": "87004", "price": 2.0, "volume": 124}, {"station": "ABQ", "dsp": "MEL", "zip": "87108", "price": 2.0, "volume": 111}, {"station": "ABQ", "dsp": "MEL", "zip": "87101", "price": 2.0, "volume": 49}, {"station": "ABQ", "dsp": "RWV", "zip": "87122", "price": 2.0, "volume": 49}, {"station": "ABQ", "dsp": "MEL", "zip": "87042", "price": 2.0, "volume": 31}, {"station": "ABQ", "dsp": "RWV", "zip": "87113", "price": 2.0, "volume": 31}, {"station": "IDA", "dsp": "WBI", "zip": "83406", "price": 2.1, "volume": 389}, {"station": "IDA", "dsp": "WBI", "zip": "83401", "price": 2.1, "volume": 283}, {"station": "IDA", "dsp": "WBI", "zip": "83402", "price": 2.1, "volume": 279}, {"station": "IDA", "dsp": "WBI", "zip": "83404", "price": 2.1, "volume": 202}, {"station": "IDA", "dsp": "WBI", "zip": "83440", "price": 2.1, "volume": 142}, {"station": "IDA", "dsp": "WBI", "zip": "83442", "price": 2.1, "volume": 84}, {"station": "SAF", "dsp": "WDL", "zip": "87508", "price": 2.2, "volume": 426}, {"station": "SAF", "dsp": "WDL", "zip": "87507", "price": 2.2, "volume": 149}, {"station": "SAF", "dsp": "WDL", "zip": "87505", "price": 2.2, "volume": 95}, {"station": "SAF", "dsp": "WDL", "zip": "87532", "price": 2.2, "volume": 52}, {"station": "SAF", "dsp": "WDL", "zip": "87506", "price": 2.2, "volume": 18}, {"station": "SAF", "dsp": "WDL", "zip": "87501", "price": 2.2, "volume": 15}, {"station": "LGU", "dsp": "CTE", "zip": "84302", "price": 1.95, "volume": 0}, {"station": "LGU", "dsp": "CTE", "zip": "84318", "price": 1.95, "volume": 0}, {"station": "LGU", "dsp": "CTE", "zip": "84319", "price": 1.95, "volume": 0}, {"station": "LGU", "dsp": "CTE", "zip": "84321", "price": 2.0, "volume": 0}, {"station": "LGU", "dsp": "CTE", "zip": "84332", "price": 1.95, "volume": 0}, {"station": "LGU", "dsp": "CTE", "zip": "84335", "price": 1.95, "volume": 0}, {"station": "LGU", "dsp": "CTE", "zip": "84337", "price": 1.95, "volume": 0}, {"station": "LGU", "dsp": "CTE", "zip": "84340", "price": 1.95, "volume": 0}, {"station": "LGU", "dsp": "CTE", "zip": "84341", "price": 1.95, "volume": 0}, {"station": "PIH", "dsp": "CJJ", "zip": "83221", "price": 2.1, "volume": 524}, {"station": "PIH", "dsp": "CJJ", "zip": "83201", "price": 2.1, "volume": 479}, {"station": "PIH", "dsp": "CJJ", "zip": "83202", "price": 2.1, "volume": 404}, {"station": "PIH", "dsp": "CJJ", "zip": "83204", "price": 2.1, "volume": 80}, {"station": "CYS", "dsp": "XAE", "zip": "82001", "price": 2.3, "volume": 0}, {"station": "CYS", "dsp": "XAE", "zip": "82007", "price": 2.3, "volume": 0}, {"station": "CYS", "dsp": "XAE", "zip": "82009", "price": 2.3, "volume": 0}, {"station": "BIL", "dsp": "WBI", "zip": "59044", "price": 2.15, "volume": 0}, {"station": "BIL", "dsp": "WBI", "zip": "59101", "price": 2.15, "volume": 0}, {"station": "BIL", "dsp": "WBI", "zip": "59102", "price": 2.15, "volume": 0}, {"station": "BIL", "dsp": "WBI", "zip": "59105", "price": 2.15, "volume": 0}, {"station": "BIL", "dsp": "WBI", "zip": "59106", "price": 2.15, "volume": 0}, {"station": "BZN", "dsp": "WBI", "zip": "59047", "price": 2.15, "volume": 0}, {"station": "BZN", "dsp": "WBI", "zip": "59701", "price": 2.15, "volume": 0}, {"station": "BZN", "dsp": "WBI", "zip": "59714", "price": 2.15, "volume": 0}, {"station": "BZN", "dsp": "WBI", "zip": "59715", "price": 2.15, "volume": 0}, {"station": "BZN", "dsp": "WBI", "zip": "59718", "price": 2.15, "volume": 0}, {"station": "BZN", "dsp": "WBI", "zip": "59741", "price": 2.15, "volume": 0}, {"station": "TWF", "dsp": "CJJ", "zip": "83301", "price": 2.1, "volume": 0}, {"station": "TWF", "dsp": "CJJ", "zip": "83303", "price": 2.1, "volume": 0}, {"station": "TWF", "dsp": "CJJ", "zip": "83338", "price": 2.1, "volume": 0}, {"station": "GJT", "dsp": "PML", "zip": "81501", "price": 2.05, "volume": 0}, {"station": "GJT", "dsp": "PML", "zip": "81503", "price": 2.05, "volume": 0}, {"station": "GJT", "dsp": "PML", "zip": "81504", "price": 2.05, "volume": 0}, {"station": "GJT", "dsp": "PML", "zip": "81505", "price": 2.05, "volume": 0}, {"station": "GJT", "dsp": "PML", "zip": "81506", "price": 2.05, "volume": 0}, {"station": "GJT", "dsp": "PML", "zip": "81507", "price": 2.05, "volume": 0}, {"station": "GJT", "dsp": "PML", "zip": "81520", "price": 2.05, "volume": 0}, {"station": "GJT", "dsp": "PML", "zip": "81521", "price": 2.05, "volume": 0}, {"station": "FMN", "dsp": "RWV", "zip": "87401", "price": 2.25, "volume": 0}, {"station": "FMN", "dsp": "RWV", "zip": "87410", "price": 2.25, "volume": 0}, {"station": "FMN", "dsp": "RWV", "zip": "87413", "price": 2.25, "volume": 0}]</script>
+<script>
+(function(){
+  const RECORDS = JSON.parse(document.getElementById('records').textContent);
+  const STATIONS = [...new Set(RECORDS.map(r=>r.station))].sort();
+  const DSPS = [...new Set(RECORDS.map(r=>r.dsp))].sort();
+  const ZIP_COUNT = new Set(RECORDS.map(r=>r.zip)).size;
+
+  document.getElementById('subtitle').textContent =
+    ZIP_COUNT + ' ZIPs · ' + STATIONS.length + ' stations · ' + DSPS.length + ' DSPs · volume-weighted by each DSP\'s own ZIP volume';
+
+  // ---------- price sheet overlay ----------
+  function parseCsv(text){
+    const lines = text.trim().split(/\r?\n/);
+    const rows = [];
+    for(let i=1;i<lines.length;i++){
+      const parts = lines[i].split(',');
+      if(parts.length<2) continue;
+      rows.push({ zip: parts[0].trim(), price: parseFloat(parts[1]) });
+    }
+    return rows;
+  }
+  function applyPriceSheet(rows){
+    const byZip = {};
+    rows.forEach(r=>{ if(r.zip && !isNaN(r.price)) byZip[r.zip]=r.price; });
+    let changed = 0;
+    RECORDS.forEach(r=>{
+      if(byZip.hasOwnProperty(r.zip) && byZip[r.zip] !== r.price){ r.price = byZip[r.zip]; changed++; }
+    });
+    const chip = document.getElementById('psChip');
+    if(changed>0){ chip.textContent = 'price sheet applied · '+changed+' adjusted'; chip.classList.add('on'); }
+    else { chip.textContent = 'price sheet applied · 0 adjusted vs base'; chip.classList.add('on'); }
+    document.getElementById('ps-note').textContent = rows.length + ' ZIPs loaded from data/price_adjustments.csv.';
+    render();
+  }
+
+  // ---------- view selector ----------
+  const sel = document.getElementById('viewSelect');
+  const optAll = document.createElement('option');
+  optAll.value = '__ALL__'; optAll.textContent = 'All DSSLC (network-wide)';
+  sel.appendChild(optAll);
+  STATIONS.forEach(s=>{
+    const o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o);
+  });
+  sel.addEventListener('change', render);
+
+  function fmtPrice(n){ return isFinite(n) ? '$'+n.toFixed(3) : '—'; }
+  function fmt(n){ return Math.round(n).toLocaleString('en-US'); }
+
+  function weightedAvg(recs){
+    let volSum = recs.reduce((a,r)=>a+r.volume,0);
+    if(volSum > 0){
+      return recs.reduce((a,r)=>a+r.price*r.volume,0) / volSum;
+    }
+    // fallback: plain average when no volume data at all
+    return recs.length ? recs.reduce((a,r)=>a+r.price,0)/recs.length : NaN;
+  }
+
+  function stationTotalVolume(st){
+    return RECORDS.filter(r=>r.station===st).reduce((a,r)=>a+r.volume,0);
+  }
+
+  function render(){
+    const view = sel.value || '__ALL__';
+    const scoped = view==='__ALL__' ? RECORDS : RECORDS.filter(r=>r.station===view);
+
+    // per-DSP avg within the current selection
+    const dspAvg = {}; const dspVol = {};
+    DSPS.forEach(dsp=>{
+      const recs = scoped.filter(r=>r.dsp===dsp);
+      if(recs.length===0) return;
+      dspAvg[dsp] = weightedAvg(recs);
+      dspVol[dsp] = recs.reduce((a,r)=>a+r.volume,0);
+    });
+    const activeDsps = Object.keys(dspAvg);
+
+    // KPIs
+    const selAvg = weightedAvg(scoped);
+    document.getElementById('kpi-avg').textContent = fmtPrice(selAvg);
+    if(activeDsps.length){
+      const sorted = activeDsps.slice().sort((a,b)=>dspAvg[b]-dspAvg[a]);
+      const hi = sorted[0], lo = sorted[sorted.length-1];
+      document.getElementById('kpi-high').innerHTML = hi + ' <span class="mono" style="color:var(--muted);font-size:12px;">'+fmtPrice(dspAvg[hi])+'</span>';
+      document.getElementById('kpi-high-sub').textContent = fmt(dspVol[hi]||0) + '/d volume';
+      document.getElementById('kpi-low').innerHTML = lo + ' <span class="mono" style="color:var(--muted);font-size:12px;">'+fmtPrice(dspAvg[lo])+'</span>';
+      document.getElementById('kpi-low-sub').textContent = fmt(dspVol[lo]||0) + '/d volume';
+      document.getElementById('kpi-spread').textContent = fmtPrice(dspAvg[hi]-dspAvg[lo]);
+    }
+
+    // bar chart
+    const barEl = document.getElementById('barchart');
+    const maxP = Math.max(...activeDsps.map(d=>dspAvg[d]), 0.01);
+    const sortedDsps = activeDsps.slice().sort((a,b)=>dspAvg[b]-dspAvg[a]);
+    barEl.innerHTML = sortedDsps.map(dsp=>{
+      const pct = dspAvg[dsp]/maxP*100;
+      const avgPct = selAvg/maxP*100;
+      return '<div class="bar-row" title="'+dsp+' · '+fmtPrice(dspAvg[dsp])+' · '+fmt(dspVol[dsp]||0)+'/d">'+
+        '<div class="bar-label">'+dsp+'</div>'+
+        '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%"></div><div class="bar-avgline" style="left:'+avgPct+'%"></div></div>'+
+        '<div class="bar-val">'+fmtPrice(dspAvg[dsp])+' · '+fmt(dspVol[dsp]||0)+'/d</div>'+
+      '</div>';
+    }).join('');
+
+    // matrix
+    const stCols = view==='__ALL__' ? STATIONS : [view];
+    const stVolTotal = stCols.reduce((a,s)=>a+stationTotalVolume(s),0);
+
+    let html = '<tr><th class="dsplabel">DSP</th>' + stCols.map(s=>'<th>'+s+'</th>').join('') + (stCols.length>1?'<th>Overall</th>':'') + '</tr>';
+
+    // gather all price values for color scaling
+    let allVals = [];
+    const cellData = {}; // dsp -> station -> {avg, vol}
+    DSPS.forEach(dsp=>{
+      cellData[dsp] = {};
+      stCols.forEach(st=>{
+        const recs = RECORDS.filter(r=>r.dsp===dsp && r.station===st);
+        if(recs.length){
+          const avg = weightedAvg(recs);
+          const vol = recs.reduce((a,r)=>a+r.volume,0);
+          cellData[dsp][st] = {avg, vol};
+          allVals.push(avg);
+        }
+      });
+    });
+    const minV = Math.min(...allVals), maxV = Math.max(...allVals);
+    function cellColor(v){
+      const t = maxV>minV ? (v-minV)/(maxV-minV) : 0.5;
+      const alpha = 0.12 + t*0.55;
+      return 'rgba(45,217,198,'+alpha.toFixed(2)+')';
+    }
+
+    DSPS.forEach(dsp=>{
+      const stCells = stCols.map(st=>{
+        const c = cellData[dsp][st];
+        if(!c) return '<td class="cell empty">—</td>';
+        return '<td class="cell" style="background:'+cellColor(c.avg)+'" title="'+fmt(c.vol)+'/d">'+fmtPrice(c.avg)+'</td>';
+      });
+      let overallCell = '';
+      if(stCols.length>1){
+        // Overall = weighted by each station's volume share among stations this DSP operates in
+        const opStations = stCols.filter(st=>cellData[dsp][st]);
+        const totalOpVol = opStations.reduce((a,st)=>a+stationTotalVolume(st),0);
+        let overall;
+        if(totalOpVol>0){
+          overall = opStations.reduce((a,st)=>a + cellData[dsp][st].avg * (stationTotalVolume(st)/totalOpVol), 0);
+        } else {
+          overall = opStations.length ? opStations.reduce((a,st)=>a+cellData[dsp][st].avg,0)/opStations.length : NaN;
+        }
+        overallCell = isFinite(overall) ? '<td class="cell" style="background:'+cellColor(overall)+';font-weight:700;">'+fmtPrice(overall)+'</td>' : '<td class="cell empty">—</td>';
+      }
+      html += '<tr><td class="dsplabel">'+dsp+'</td>' + stCells.join('') + overallCell + '</tr>';
+    });
+
+    // station avg row
+    const stAvgCells = stCols.map(st=>{
+      const recs = RECORDS.filter(r=>r.station===st);
+      return '<td class="cell" style="font-weight:700;">'+fmtPrice(weightedAvg(recs))+'</td>';
+    });
+    let regionOverall = '';
+    if(stCols.length>1){
+      const val = stCols.reduce((a,st)=>a + weightedAvg(RECORDS.filter(r=>r.station===st)) * (stationTotalVolume(st)/(stVolTotal||1)), 0);
+      regionOverall = '<td class="cell" style="font-weight:700;">'+fmtPrice(val)+'</td>';
+    }
+    html += '<tr class="overallrow"><th class="dsplabel">Station avg</th>' + stAvgCells.join('') + regionOverall + '</tr>';
+
+    document.getElementById('matrix').innerHTML = html;
+  }
+
+  render();
+
+  fetch('../data/price_adjustments.csv?t=' + Date.now(), { cache:'no-store' })
+    .then(r=>{ if(!r.ok) throw new Error('not found'); return r.text(); })
+    .then(text=>applyPriceSheet(parseCsv(text)))
+    .catch(()=>{ document.getElementById('ps-note').textContent = 'Using baseline prices embedded in this page (data/price_adjustments.csv not reachable from this preview — works once deployed to GitHub Pages).'; });
+})();
+</script>
+</body>
+</html>
